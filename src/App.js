@@ -23,6 +23,8 @@ import Sermons from './pages/Sermons';
 import Donations from './pages/Donations';
 import Members from './pages/Members';
 import Addmember from './pages/Addmember';
+import Families from './pages/Families';
+import FamilyDetails from './pages/FamilyDetails';
 
 const AppLayout = ({ children }) => (
   <Box sx={{ display: 'flex' }}>
@@ -101,7 +103,37 @@ const App = () => {
                 }
               />
               <Route
+                path="/families"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Families />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/families/:id"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <FamilyDetails />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/Addmembers"
+                element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Addmember />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/members/:id/edit"
                 element={
                   <ProtectedRoute>
                     <AppLayout>

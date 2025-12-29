@@ -19,13 +19,15 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { useFormik } from 'formik';
 import * as yup from 'yup';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabase';
+import { useAuth } from '../auth/AuthProvider';
 
 // Validation schema for family
 const familyValidationSchema = yup.object({
   family_name: yup.string().required('Family name is required'),
   parish: yup.string().required('Parish is required'),
+  province: yup.string().required('Province is required'),
   jummuiya: yup.string(),
 });
 
@@ -37,6 +39,11 @@ const memberValidationSchema = yup.object({
   relation: yup.string().required('Relation to family is required'),
   baptism_date: yup.date().nullable(),
   is_married: yup.boolean(),
+  spouse: yup.string().when('is_married', {
+    is: true,
+    then: yup.string().required('Spouse name is required'),
+    otherwise: yup.string().nullable(),
+  }),
   marriage_date: yup.date().when('is_married', {
     is: true,
     then: yup.date().required('Marriage date is required'),
@@ -45,8 +52,10 @@ const memberValidationSchema = yup.object({
 
 export default function FamilyMemberForm() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const isEdit = !!id;
+  const { isAdmin } = useAuth();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [families, setFamilies] = useState([]);
@@ -57,6 +66,7 @@ export default function FamilyMemberForm() {
     initialValues: {
       family_name: '',
       parish: '',
+      province: '',
       jummuiya: '',
     },
     validationSchema: familyValidationSchema,
@@ -94,6 +104,7 @@ export default function FamilyMemberForm() {
       baptism_date: null,
       is_married: false,
       marriage_date: null,
+      spouse: '',
     },
     validationSchema: memberValidationSchema,
     onSubmit: async (values) => {
@@ -156,6 +167,13 @@ export default function FamilyMemberForm() {
           });
           setMode('member');
         }
+
+        // If coming from a specific family context (e.g. "Add Member" from Families page)
+        const familyIdFromQuery = searchParams.get('familyId');
+        if (!isEdit && familyIdFromQuery) {
+          setMode('member');
+          memberFormik.setFieldValue('family_id', familyIdFromQuery);
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -165,6 +183,16 @@ export default function FamilyMemberForm() {
 
     fetchData();
   }, [id, isEdit, memberFormik]); // Added memberFormik to dependencies
+
+  if (!isAdmin) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="warning">
+          You do not have permission to manage families or members.
+        </Alert>
+      </Box>
+    );
+  }
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -211,6 +239,17 @@ export default function FamilyMemberForm() {
                   </MenuItem>
                 ))}
               </TextField>
+
+              <TextField
+                fullWidth
+                label="Province *"
+                name="province"
+                value={familyFormik.values.province}
+                onChange={familyFormik.handleChange}
+                error={familyFormik.touched.province && Boolean(familyFormik.errors.province)}
+                helperText={familyFormik.touched.province && familyFormik.errors.province}
+                disabled={loading}
+              />
 
               <TextField
                 label="Jummuiya (Small Christian Community)"
@@ -335,6 +374,16 @@ export default function FamilyMemberForm() {
                 <Switch
                   checked={memberFormik.values.is_married}
                   onChange={(e) => memberFormik.setFieldValue('is_married', e.target.checked)}
+                  disabled={loading}
+                />
+                <TextField
+                  fullWidth
+                  label="Spouse Name"
+                  name="spouse"
+                  value={memberFormik.values.spouse}
+                  onChange={memberFormik.handleChange}
+                  error={memberFormik.touched.spouse && Boolean(memberFormik.errors.spouse)}
+                  helperText={memberFormik.touched.spouse && memberFormik.errors.spouse}
                   disabled={loading}
                 />
                 {memberFormik.values.is_married && (

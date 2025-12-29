@@ -12,9 +12,11 @@ import {
 import { Button, Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
+import { useAuth } from '../auth/AuthProvider';
 
 export default function Members() {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [members, setMembers] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -84,7 +86,10 @@ export default function Members() {
     },
     { field: 'parish', headerName: 'Parish', width: 150 },
     { field: 'jummuiya', headerName: 'Jummuiya', width: 150 },
-    {
+  ];
+
+  if (isAdmin) {
+    columns.push({
       field: 'actions',
       type: 'actions',
       width: 100,
@@ -101,8 +106,8 @@ export default function Members() {
           color="error"
         />,
       ],
-    },
-  ];
+    });
+  }
 
   // Realtime subscription
   useEffect(() => {
@@ -130,14 +135,16 @@ export default function Members() {
         </Alert>
       )}
 
-      <Button
-        variant="contained"
-        startIcon={<Add />}
-        onClick={() => navigate('/members/new')}
-        sx={{ mb: 2 }}
-      >
-        Add Member
-      </Button>
+      {isAdmin && (
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          onClick={() => navigate('/families')}
+          sx={{ mb: 2 }}
+        >
+          Add Member
+        </Button>
+      )}
 
       <DataGrid
         rows={members}

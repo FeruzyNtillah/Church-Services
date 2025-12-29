@@ -6,20 +6,52 @@ export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
     const getSession = async () => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+
+      if (currentUser) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('id, email, full_name, role')
+          .eq('id', currentUser.id)
+          .single();
+        setProfile(profileData ?? null);
+      } else {
+        setProfile(null);
+      }
+
+      setAuthLoading(false);
     };
 
     getSession();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+
+        if (currentUser) {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('id, email, full_name, role')
+            .eq('id', currentUser.id)
+            .single();
+          setProfile(profileData ?? null);
+        } else {
+          setProfile(null);
+        }
+
+        setAuthLoading(false);
+      }
+    );
 
     return () => {
       listener.subscription.unsubscribe();
@@ -27,7 +59,15 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        role: profile?.role ?? 'user',
+        isAdmin: profile?.role === 'admin',
+        authLoading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
