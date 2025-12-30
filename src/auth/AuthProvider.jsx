@@ -63,6 +63,8 @@ export const AuthProvider = ({ children }) => {
       value={{
         user,
         profile,
+        // alias for compatibility with components expecting `loading`
+        loading: authLoading,
         role: profile?.role ?? 'user',
         isAdmin: profile?.role === 'admin',
         authLoading,

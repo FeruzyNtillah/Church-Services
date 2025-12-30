@@ -1,6 +1,61 @@
-import { createClient } from '@supabase/supabase-js';
+// Stub Supabase client to disable remote auth/DB calls while keeping the
+// local app functional. This preserves the import surface used across
+// the app but returns empty/no-op results so pages render without errors.
 
-const supabaseUrl = 'https://gdplyqomyckiaiorafmk.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdkcGx5cW9teWNraWFpb3JhZm1rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NzY2NjMsImV4cCI6MjA4MjU1MjY2M30.k52iDUf1ax0EDvweE-LI5WEELaf8_Jdo5JntMNlNbRU';
+const makeQuery = (result = []) => {
+	const obj = {
+		// chainable methods
+		select() { return obj; },
+		insert() { return obj; },
+		update() { return obj; },
+		delete() { return obj; },
+		order() { return obj; },
+		eq() { return obj; },
+		single() { return obj; },
+		// thenable so `await supabase.from(...).select(...);` works
+		then(resolve) {
+			resolve({ data: result, error: null });
+		},
+	};
+	return obj;
+};
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabase = {
+	// Minimal auth surface
+	auth: {
+		async getSession() {
+			return { data: { session: null } };
+		},
+		onAuthStateChange(_cb) {
+			return { data: { subscription: { unsubscribe: () => {} } } };
+		},
+		async signInWithPassword() {
+			return { error: null, data: null };
+		},
+		async signUp() {
+			return { error: null, data: null };
+		},
+		async signOut() {
+			return { error: null };
+		},
+	},
+
+	// Minimal realtime surface
+	channel() {
+		const ch = {
+			on() { return ch; },
+			subscribe() { return { id: 'stub' }; },
+		};
+		return ch;
+	},
+	removeChannel() {
+		// no-op
+	},
+
+	// Minimal query builder
+	from(_table) {
+		return makeQuery([]);
+	},
+};
+
+export { supabase };
